@@ -14,6 +14,7 @@ find_package(Qt6 COMPONENTS Widgets REQUIRED)
 
 add_executable(${project_name}
     ${project_name}.cpp
+    MyTestPage1.h MyTestPage1.cpp
 )
 
 target_link_libraries(${project_name} PRIVATE Qt6::Widgets)
