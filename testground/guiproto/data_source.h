@@ -10,6 +10,9 @@
 // --- data_object_base ---
 // ------------------------
 
+/// @todo Make real class using std::filesystem::path internally. Must support network paths as well.
+using data_path = std::string;
+
 struct data_object_base
 {
     using id_t = size_t;
@@ -45,9 +48,9 @@ struct my_point : public data_object_base
 // ------------------
 // --- data_value ---
 // ------------------
-
-using data_value = std::variant<int32_t, int64_t, float, double, std::string, bool, data_object_sp>;
-// using data_value = std::variant<int32_t, bool, std::string, data_object_sp>;
+class data_source_base;
+using data_source_base_sp = std::shared_ptr<data_source_base>;
+using data_value = std::variant<int32_t, int64_t, float, double, std::string, bool, data_object_sp, data_source_base_sp>;
 
 std::string     to_string   (const data_value& val);
 
@@ -55,34 +58,47 @@ std::string     to_string   (const data_value& val);
 // --- data_source_base ---
 // ------------------------
 
+/**
+@todo Most likely we do not want data_source_base to be copyable ...
+ */
 class data_source_base
 {
 public:
-    virtual ~data_source_base() = default;
+    data_source_base()                                      = default;
+    virtual ~data_source_base()                             = default;
+    data_source_base(const data_source_base&)               = default;
+    data_source_base(data_source_base&&)                    = default;
+    data_source_base& operator=(const data_source_base&)    = default;
+    data_source_base& operator=(data_source_base&&)         = default;
 
-    void                set                 (const std::string& path, int32_t val);
-    void                set                 (const std::string& path, int64_t val);
-    void                set                 (const std::string& path, float val);
-    void                set                 (const std::string& path, double val);
-    void                set                 (const std::string& path, bool val);
-    void                set                 (const std::string& path, std::string val);
-    void                set                 (const std::string& path, data_value val);
 
-    int32_t             as_int32            (const std::string& path) const;
-    const std::string&  as_string           (const std::string& path)  const;
-    const data_value&   as_data_value       (const std::string& path)  const;
+    // void                        set                 (const data_path& path, int32_t val);
+    // void                        set                 (const data_path& path, int64_t val);
+    // void                        set                 (const data_path& path, float val);
+    // void                        set                 (const data_path& path, double val);
+    // void                        set                 (const data_path& path, bool val);
+    // void                        set                 (const data_path& path, std::string val);
+    // void                        set                 (const data_path& path, data_object_sp val);
+    void                        set                 (const data_path& path, data_value val);
 
-    bool                is_read_only        () const;
+    int32_t                     as_int32            (const data_path& path) const;
+    const std::string&          as_string           (const data_path& path)  const;
+    const data_value&           as_data_value       (const data_path& path)  const;
 
-    std::string         dbg_string          () const;
-    void                dbg_print           () const;
+    bool                        is_read_only        () const;
+
+    const std::string&          path                () const    { return path_; }
+    std::string                 dbg_string          () const;
+    void                        dbg_print           () const;
 
 protected:
-    virtual const data_value&   do_as_data_value    (const std::string& path)  const = 0;
-    virtual void                do_set              (const std::string& path, data_value val) = 0;
+    virtual const data_value&   do_as_data_value    (const data_path& path)  const = 0;
+    virtual void                do_set              (const data_path& path, data_value val) = 0;
     virtual std::string         do_dbg_string       () const = 0;
 
     virtual bool                do_is_read_only     () const { return false; }
+private:
+    data_path                   path_               {};
 };
 
 
@@ -93,10 +109,10 @@ public:
 
 
 protected:
-    const data_value&   do_as_data_value    (const std::string& path)  const override;
-    void                do_set              (const std::string& path, data_value val) override;
+    const data_value&           do_as_data_value    (const data_path& path)  const override;
+    void                        do_set              (const data_path& path, data_value val) override;
 
-    std::string         do_dbg_string       () const override;
+    std::string                 do_dbg_string       () const override;
 
 private:
     using map_string_t = std::unordered_map<std::string, data_value>;

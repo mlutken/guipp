@@ -65,53 +65,53 @@ string to_string(const data_value& val)
 // --- data_source_base ---
 // ------------------------
 
-void data_source_base::set(const std::string& path, int32_t val)
-{
-    set(path, data_value{val});
-}
+// void data_source_base::set(const data_path& path, int32_t val)
+// {
+//     set(path, data_value{val});
+// }
 
-void data_source_base::set(const std::string& path, int64_t val)
-{
-    set(path, data_value{val});
-}
+// void data_source_base::set(const data_path& path, int64_t val)
+// {
+//     set(path, data_value{val});
+// }
 
-void data_source_base::set(const std::string& path, float val)
-{
-    set(path, data_value{val});
-}
+// void data_source_base::set(const data_path& path, float val)
+// {
+//     set(path, data_value{val});
+// }
 
-void data_source_base::set(const std::string& path, double val)
-{
-    set(path, data_value{val});
-}
+// void data_source_base::set(const data_path& path, double val)
+// {
+//     set(path, data_value{val});
+// }
 
-void data_source_base::set(const std::string& path, bool val)
-{
-    set(path, data_value{val});
-}
+// void data_source_base::set(const data_path& path, bool val)
+// {
+//     set(path, data_value{val});
+// }
 
-void data_source_base::set(const std::string& path, std::string val)
-{
-    set(path, data_value{std::move(val)});
-}
+// void data_source_base::set(const data_path& path, std::string val)
+// {
+//     set(path, data_value{std::move(val)});
+// }
 
-void data_source_base::set(const std::string& path, data_value val)
+void data_source_base::set(const data_path& path, data_value val)
 {
     do_set(path, std::move(val));
 }
 
-int32_t data_source_base::as_int32(const std::string& path) const
+int32_t data_source_base::as_int32(const data_path& path) const
 {
     return std::get<int32_t>(as_data_value(path));
 }
 
 
-const string& data_source_base::as_string(const std::string& path) const
+const string& data_source_base::as_string(const data_path& path) const
 {
     return std::get<std::string>(as_data_value(path));
 }
 
-const data_value& data_source_base::as_data_value(const std::string& path) const
+const data_value& data_source_base::as_data_value(const data_path& path) const
 {
     return do_as_data_value(path);
 }
@@ -136,14 +136,14 @@ void data_source_base::dbg_print() const
 // --- data_source ---
 // -------------------
 
-const data_value& data_source::do_as_data_value(const std::string& path) const
+const data_value& data_source::do_as_data_value(const data_path& path) const
 {
     static const data_value default_value{};
     const auto it = string_data_.find(path);
     return it != string_data_.end() ? it->second : default_value;
 }
 
-void data_source::do_set(const std::string& path, data_value val)
+void data_source::do_set(const data_path& path, data_value val)
 {
     string_data_[path] = std::move(val);
 }
