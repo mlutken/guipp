@@ -22,7 +22,7 @@ signals:
 private:
     using layout_stack_t    = std::stack<QLayout*>;
     using widget_map_t      = std::unordered_map<std::string, QWidget*>;
-''
+
     void                add_layout_helper   (QLayout* layout);
     // void                cur_layout          ();
     void                add_widget_helper   (QWidget* w);
