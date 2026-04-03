@@ -70,16 +70,11 @@ public:
     data_source_base(data_source_base&&)                    = default;
     data_source_base& operator=(const data_source_base&)    = default;
     data_source_base& operator=(data_source_base&&)         = default;
+    explicit data_source_base   (data_path);
 
 
-    // void                        set                 (const data_path& path, int32_t val);
-    // void                        set                 (const data_path& path, int64_t val);
-    // void                        set                 (const data_path& path, float val);
-    // void                        set                 (const data_path& path, double val);
-    // void                        set                 (const data_path& path, bool val);
-    // void                        set                 (const data_path& path, std::string val);
-    // void                        set                 (const data_path& path, data_object_sp val);
     void                        set                 (const data_path& path, data_value val);
+    void                        set_data_source     (const data_path& path, data_source_base_sp val);
 
     int32_t                     as_int32            (const data_path& path) const;
     const std::string&          as_string           (const data_path& path)  const;
@@ -87,14 +82,15 @@ public:
 
     bool                        is_read_only        () const;
 
-    const std::string&          path                () const    { return path_; }
-    std::string                 dbg_string          () const;
+    const data_path&            path                () const    { return path_; }
+    std::string                 to_string           () const;
     void                        dbg_print           () const;
 
 protected:
     virtual const data_value&   do_as_data_value    (const data_path& path)  const = 0;
     virtual void                do_set              (const data_path& path, data_value val) = 0;
-    virtual std::string         do_dbg_string       () const = 0;
+    virtual void                do_set_data_source  (const data_path& path, data_source_base_sp val) = 0;
+    virtual std::string         do_to_string        () const = 0;
 
     virtual bool                do_is_read_only     () const { return false; }
 private:
@@ -105,14 +101,16 @@ private:
 class data_source : public data_source_base
 {
 public:
+    using data_source_base::data_source_base;
     data_source() = default;
 
 
 protected:
     const data_value&           do_as_data_value    (const data_path& path)  const override;
     void                        do_set              (const data_path& path, data_value val) override;
+    void                        do_set_data_source  (const data_path& path, data_source_base_sp val) override;
 
-    std::string                 do_dbg_string       () const override;
+    std::string                 do_to_string       () const override;
 
 private:
     using map_string_t = std::unordered_map<std::string, data_value>;

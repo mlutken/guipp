@@ -27,75 +27,36 @@ string my_point::to_string() const
 // --- data_value ---
 // ------------------
 
-// using data_value = std::variant<int32_t, int64_t, float, double, std::string, bool, data_object_sp>;
-
 /// @see https://www.cppstories.com/2018/09/visit-variants/
-// struct data_value_to_string_visitor {
-//     void operator()(int32_t val)       { std::cout << "int32_t\n"; }
-//     void operator()(int64_t val )   { std::cout << "int64_t\n"; }
-//     void operator()(float val)   { std::cout << "float\n"; }
-//     void operator()(double val ) { std::cout << "double\n"; }
-//     void operator()(bool val ) { std::cout << "bool\n"; }
-//     void operator()(const std::string& val ) { std::cout << "string\n"; }
-//     void operator()(const data_object_sp& val ) { std::cout << "data_object_sp\n"; }
-// };
-
-// struct data_value_to_string_visitor {
-//     std::string operator()(int32_t val)       { return to_string(val); }
-//     std::string operator()(int64_t val)       { return to_string(val); }
-//     std::string operator()(float val)       { return to_string(val); }
-//     std::string operator()(double val)       { return to_string(val); }
-//     std::string operator()(bool val)       { return to_string(val); }
-//     std::string operator()(const data_object_sp& val ) { return val->to_string(); }
-// };
-
 string to_string(const data_value& val)
 {
     return std::visit(visit_overload_t {
-        [](const std::string& b)        -> string { return b; },
-        [](bool val)                    -> string { return val ? "true" : "false"; },
-        [](const data_object_sp& val)   -> string { return val->to_string(); },
-        [](auto val)                    -> string { return to_string(val); },
+        [](const std::string& b)            -> string { return b;                       },
+        [](bool val)                        -> string { return val ? "true" : "false";  },
+        [](const data_object_base& val)     -> string { return val.to_string();         },
+        [](const data_object_sp& val)       -> string { return val->to_string();        },
+        [](const data_source_base& val)     -> string { return val.to_string();         },
+        [](const data_source_base_sp& val)  -> string { return val->to_string();        },
+        [](auto val)                        -> string { return to_string(val);          },
     }, val);
 }
-
 
 
 // ------------------------
 // --- data_source_base ---
 // ------------------------
 
-// void data_source_base::set(const data_path& path, int32_t val)
-// {
-//     set(path, data_value{val});
-// }
-
-// void data_source_base::set(const data_path& path, int64_t val)
-// {
-//     set(path, data_value{val});
-// }
-
-// void data_source_base::set(const data_path& path, float val)
-// {
-//     set(path, data_value{val});
-// }
-
-// void data_source_base::set(const data_path& path, double val)
-// {
-//     set(path, data_value{val});
-// }
-
-// void data_source_base::set(const data_path& path, bool val)
-// {
-//     set(path, data_value{val});
-// }
-
-// void data_source_base::set(const data_path& path, std::string val)
-// {
-//     set(path, data_value{std::move(val)});
-// }
+data_source_base::data_source_base(data_path path) :
+    path_{path}
+{
+}
 
 void data_source_base::set(const data_path& path, data_value val)
+{
+    do_set(path, std::move(val));
+}
+
+void data_source_base::set_data_source(const data_path& path, data_source_base_sp val)
 {
     do_set(path, std::move(val));
 }
@@ -122,14 +83,14 @@ bool data_source_base::is_read_only() const
     return do_is_read_only();
 }
 
-string data_source_base::dbg_string() const
+string data_source_base::to_string() const
 {
-    return do_dbg_string();
+    return do_to_string();
 }
 
 void data_source_base::dbg_print() const
 {
-    cerr << dbg_string() << "\n";
+    cerr << to_string() << "\n";
 }
 
 // -------------------
@@ -148,12 +109,18 @@ void data_source::do_set(const data_path& path, data_value val)
     string_data_[path] = std::move(val);
 }
 
-string data_source::do_dbg_string() const
+void data_source::do_set_data_source(const data_path& path, data_source_base_sp val)
+{
+    string_data_[path] = std::move(val);
+}
+
+string data_source::do_to_string() const
 {
     string s;
+    s += "[" + path() + "]\n";
     for (const auto& [path, val]: string_data_) {
         s += path + " : ";
-        s += to_string(val) + "\n";
+        s += ::to_string(val) + "\n";
     }
 
     return s;
@@ -166,14 +133,19 @@ string data_source::do_dbg_string() const
 void data_source_playground_1()
 {
     cerr << " --- data_source_playground_1() ---\n";
+    auto ds_leaf = make_shared<data_source>("/leaf");
+    ds_leaf->set("video_title", "Cpp Weekly - ep 500"s);
+    ds_leaf->set("stars", 3);
 
-    data_source ds;
-    ds.set("video_title", "The Trump Report - ep 345"s);
-    ds.set("stars", 4);
-    ds.set("ai_generated", false);
-    ds.set("pos", make_shared<my_point>(2, 3));
 
-    ds.dbg_print();
+    data_source ds_root{"/"};
+    ds_root.set("video_title", "The Trump Report - ep 345"s);
+    ds_root.set("stars", 4);
+    ds_root.set("ai_generated", false);
+    ds_root.set("pos", make_shared<my_point>(2, 3));
+    ds_root.set("/leaf", ds_leaf);
+
+    ds_root.dbg_print();
 
 
 
