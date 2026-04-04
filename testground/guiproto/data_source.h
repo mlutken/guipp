@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 #include <memory>
 #include <unordered_map>
 #include <variant>
@@ -49,10 +50,13 @@ struct my_point : public data_object_base
 // --- data_value ---
 // ------------------
 class data_source_base;
-using data_source_base_sp = std::shared_ptr<data_source_base>;
-using data_value = std::variant<int32_t, int64_t, float, double, std::string, bool, data_object_sp, data_source_base_sp>;
+using data_source_base_sp   = std::shared_ptr<data_source_base>;
+using data_value            = std::variant<int32_t, int64_t, float, double, bool, std::string,
+                                           data_object_sp, data_source_base_sp>;
+using data_value_vec        = std::vector<data_value>;
 
 std::string     to_string   (const data_value& val);
+std::string     to_string   (const data_value_vec& val);
 
 // ------------------------
 // --- data_source_base ---
@@ -74,6 +78,7 @@ public:
 
 
     void                        set                 (const data_path& path, data_value val);
+    void                        set                 (const data_path& path, data_value_vec val);
     void                        set_data_source     (const data_path& path, data_source_base_sp val);
 
     int32_t                     as_int32            (const data_path& path) const;
@@ -89,6 +94,7 @@ public:
 protected:
     virtual const data_value&   do_as_data_value    (const data_path& path)  const = 0;
     virtual void                do_set              (const data_path& path, data_value val) = 0;
+    virtual void                do_set_data_vec     (const data_path& path, data_value_vec val) = 0;
     virtual void                do_set_data_source  (const data_path& path, data_source_base_sp val) = 0;
     virtual std::string         do_to_string        () const = 0;
 
@@ -108,14 +114,17 @@ public:
 protected:
     const data_value&           do_as_data_value    (const data_path& path)  const override;
     void                        do_set              (const data_path& path, data_value val) override;
+    void                        do_set_data_vec     (const data_path& path, data_value_vec val) override;
     void                        do_set_data_source  (const data_path& path, data_source_base_sp val) override;
 
     std::string                 do_to_string       () const override;
 
 private:
-    using map_string_t = std::unordered_map<std::string, data_value>;
+    using map_string_data_t = std::unordered_map<std::string, data_value>;
+    using map_string_vec_t  = std::unordered_map<std::string, data_value_vec>;
 
-    map_string_t        string_data_;
+    map_string_data_t           string_data_map_;
+    map_string_vec_t            string_vec_map_;
 };
 
 // ----------------------------------------------

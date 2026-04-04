@@ -1,4 +1,5 @@
 #include "data_source.h"
+#include <ranges>
 #include <sstream>
 #include <iostream>
 
@@ -41,6 +42,15 @@ string to_string(const data_value& val)
     }, val);
 }
 
+string to_string(const data_value_vec& vec)
+{
+    string s{};
+    for (const auto& val: vec | views::take(vec.size()-1)) {
+        s += to_string(val) + ", ";
+    }
+    s += to_string(vec.back());
+    return s;
+}
 
 // ------------------------
 // --- data_source_base ---
@@ -56,6 +66,11 @@ void data_source_base::set(const data_path& path, data_value val)
     do_set(path, std::move(val));
 }
 
+void data_source_base::set(const data_path& path, data_value_vec val)
+{
+    do_set_data_vec(path, std::move(val));
+}
+
 void data_source_base::set_data_source(const data_path& path, data_source_base_sp val)
 {
     do_set(path, std::move(val));
@@ -65,7 +80,6 @@ int32_t data_source_base::as_int32(const data_path& path) const
 {
     return std::get<int32_t>(as_data_value(path));
 }
-
 
 const string& data_source_base::as_string(const data_path& path) const
 {
@@ -100,27 +114,36 @@ void data_source_base::dbg_print() const
 const data_value& data_source::do_as_data_value(const data_path& path) const
 {
     static const data_value default_value{};
-    const auto it = string_data_.find(path);
-    return it != string_data_.end() ? it->second : default_value;
+    const auto it = string_data_map_.find(path);
+    return it != string_data_map_.end() ? it->second : default_value;
 }
 
 void data_source::do_set(const data_path& path, data_value val)
 {
-    string_data_[path] = std::move(val);
+    string_data_map_[path] = std::move(val);
+}
+
+void data_source::do_set_data_vec(const data_path& path, data_value_vec val)
+{
+    string_vec_map_[path] = std::move(val);
 }
 
 void data_source::do_set_data_source(const data_path& path, data_source_base_sp val)
 {
-    string_data_[path] = std::move(val);
+    string_data_map_[path] = std::move(val);
 }
 
 string data_source::do_to_string() const
 {
     string s;
-    s += "[" + path() + "]\n";
-    for (const auto& [path, val]: string_data_) {
+    s += "{" + path() + "}\n";
+    for (const auto& [path, val]: string_data_map_) {
         s += path + " : ";
         s += ::to_string(val) + "\n";
+    }
+    for (const auto& [path, vec]: string_vec_map_) {
+        s += "[" + path + "]: ";
+        s += ::to_string(vec) + "\n";
     }
 
     return s;
@@ -133,9 +156,11 @@ string data_source::do_to_string() const
 void data_source_playground_1()
 {
     cerr << " --- data_source_playground_1() ---\n";
+    data_value_vec ds_vec {1, 2, 3};
     auto ds_leaf = make_shared<data_source>("/leaf");
     ds_leaf->set("video_title", "Cpp Weekly - ep 500"s);
     ds_leaf->set("stars", 3);
+    ds_leaf->set("vec", ds_vec);
 
 
     data_source ds_root{"/"};
