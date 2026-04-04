@@ -11,7 +11,7 @@
 int main(int argc, char *argv[])
 {
     data_source_playground_1();
-    exit(0);    // FIXMENM
+    // exit(0);    // FIXMENM
 
     QApplication a(argc, argv);
 
