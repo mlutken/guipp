@@ -18,6 +18,9 @@ add_executable(${project_name}
     test_page_a1.h test_page_a1.cpp
     page_data_base.h page_data_base.cpp
     data_source.h data_source.cpp
+    label_widget.h label_widget.cpp
+    component.h component.cpp
+    widget.h widget.cpp
 )
 
 target_link_libraries(${project_name} PRIVATE Qt6::Widgets)
