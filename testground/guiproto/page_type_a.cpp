@@ -1,12 +1,25 @@
 #include "page_type_a.h"
+#include <iostream>
 
+#include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <qpushbutton.h>
 
-page_type_a::page_type_a(QWidget* parent)
-    : QWidget{parent}
+template<class... Ts>
+struct visit_overload_t : Ts... {
+    using Ts::operator()...;
+};
+template<class... Ts>
+visit_overload_t(Ts...) -> visit_overload_t<Ts...>; // Deduction guide
+
+using namespace std;
+
+page_type_a::page_type_a(data_source_base& data_source, QWidget* parent)
+    : QWidget{parent},
+      data_source_ref_ptr_{&data_source}
 {
+    this->data_source().connect([this](const data_path& path) { on_data_changed(path);});
 }
 
 page_type_a& page_type_a::layout_h()
@@ -27,25 +40,57 @@ page_type_a& page_type_a::layout_pop()
     return *this;
 }
 
-page_type_a& page_type_a::button(const std::string& text)
+page_type_a& page_type_a::label(const data_path& path)
 {
-    auto button1 = new QPushButton(QString::fromUtf8(text.c_str()));
-    add_widget_helper(button1);
+    auto label = new QLabel(QString::fromUtf8(data_source().as_string(path).c_str()));
+    label->setWordWrap(true);
+    add_widget_helper(label);
+    widget_map_[path] = label;
     return *this;
 }
+
+page_type_a& page_type_a::button(const data_path& path)
+{
+    auto button = new QPushButton(QString::fromUtf8(data_source().as_string(path).c_str()));
+    add_widget_helper(button);
+    widget_map_[path] = button;
+    return *this;
+}
+
+
+data_source_base& page_type_a::data_source()
+{
+    if (data_source_ref_ptr_) { return *data_source_ref_ptr_; }
+    return *data_source_sp_;
+}
+
+const data_source_base& page_type_a::data_source() const
+{
+    if (data_source_ref_ptr_) { return *data_source_ref_ptr_; }
+    return *data_source_sp_;
+}
+
+void page_type_a::on_data_changed(const data_path& path)
+{
+    cerr << "FIXMENM on_data_changed: " << path << "\n";
+}
+
+// -----------------------
+// --- PRIVATE helpers ---
+// -----------------------
 
 void page_type_a::add_layout_helper(QLayout* layout)
 {
     if (!has_cur_layout()) {
         setLayout(layout);
-        m_layout_stack.push(layout);
+        layout_stack_.push(layout);
         return;
     }
 
     if (auto* box_layout = dynamic_cast<QBoxLayout*>(cur_layout()); box_layout != nullptr) {
         box_layout->addLayout(layout);
     }
-    m_layout_stack.push(layout);
+    layout_stack_.push(layout);
 }
 
 void page_type_a::add_widget_helper(QWidget *w)
@@ -55,10 +100,10 @@ void page_type_a::add_widget_helper(QWidget *w)
 
 QLayout* page_type_a::cur_layout() const
 {
-    if (m_layout_stack.empty()) {
+    if (layout_stack_.empty()) {
         return nullptr;
     }
-    return m_layout_stack.top();
+    return layout_stack_.top();
 }
 
 bool page_type_a::has_cur_layout() const

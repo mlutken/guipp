@@ -6,6 +6,7 @@
 #include <memory>
 #include <unordered_map>
 #include <variant>
+#include <functional>
 
 // ------------------------
 // --- data_object_base ---
@@ -13,6 +14,8 @@
 
 /// @todo Make real class using std::filesystem::path internally. Must support network paths as well.
 using data_path = std::string;
+
+using data_changed_cb = std::function<void (const data_path&)>;
 
 struct data_object_base
 {
@@ -85,6 +88,8 @@ public:
     const std::string&          as_string           (const data_path& path)  const;
     const data_value&           as_data_value       (const data_path& path)  const;
 
+    void                        connect             (data_changed_cb cb);
+
     bool                        is_read_only        () const;
 
     const data_path&            path                () const    { return path_; }
@@ -99,8 +104,14 @@ protected:
     virtual std::string         do_to_string        () const = 0;
 
     virtual bool                do_is_read_only     () const { return false; }
+
 private:
-    data_path                   path_               {};
+    using data_changed_cb_vec_t = std::vector<data_changed_cb>;
+
+    void                        call_on_changed     (const data_path& path) const;
+
+    data_path                   path_                   {};
+    data_changed_cb_vec_t       data_changed_cb_vec_    {};
 };
 
 
@@ -120,15 +131,16 @@ protected:
     std::string                 do_to_string       () const override;
 
 private:
-    using map_string_data_t = std::unordered_map<std::string, data_value>;
-    using map_string_vec_t  = std::unordered_map<std::string, data_value_vec>;
+    using map_string_data_t     = std::unordered_map<std::string, data_value>;
+    using map_string_vec_t      = std::unordered_map<std::string, data_value_vec>;
 
-    map_string_data_t           string_data_map_;
-    map_string_vec_t            string_vec_map_;
+    map_string_data_t           string_data_map_        {};
+    map_string_vec_t            string_vec_map_         {};
 };
 
 // ----------------------------------------------
 // --- data_source playground and adhoc tests ---
 // ----------------------------------------------
 
-void data_source_playground_1();
+void        data_source_playground_1();
+data_source create_demo_1           ();
